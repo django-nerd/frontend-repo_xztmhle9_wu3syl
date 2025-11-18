@@ -1,71 +1,95 @@
+import { useEffect, useState } from 'react'
+import Auth from './components/Auth'
+import Dashboard from './components/Dashboard'
+import StoreAdmin from './components/StoreAdmin'
+import Storefront from './components/Storefront'
+
 function App() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)]"></div>
+  const [authed, setAuthed] = useState(!!localStorage.getItem('auth_token'))
+  const [route, setRoute] = useState(window.location.pathname)
+  const [activeStore, setActiveStore] = useState(null)
 
-      <div className="relative min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-2xl w-full">
-          {/* Header with Flames icon */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center mb-6">
-              <img
-                src="/flame-icon.svg"
-                alt="Flames"
-                className="w-24 h-24 drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]"
-              />
-            </div>
+  useEffect(() => {
+    const onPop = () => setRoute(window.location.pathname)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
-            <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
-              Flames Blue
-            </h1>
+  function navigate(path){
+    window.history.pushState({}, '', path)
+    setRoute(path)
+  }
 
-            <p className="text-xl text-blue-200 mb-6">
-              Build applications through conversation
-            </p>
-          </div>
+  // Simple routes:
+  // /           -> landing/auth or dashboard
+  // /admin      -> store admin (after selecting a store on dashboard)
+  // /store/:slug -> storefront
 
-          {/* Instructions */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-8 shadow-xl mb-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                1
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Describe your idea</h3>
-                <p className="text-blue-200/80 text-sm">Use the chat panel on the left to tell the AI what you want to build</p>
-              </div>
-            </div>
+  if (route.startsWith('/store/')) {
+    const slug = route.replace('/store/','')
+    return (
+      <Page>
+        <Header onNav={navigate} />
+        <Storefront slug={slug} />
+      </Page>
+    )
+  }
 
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                2
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Watch it build</h3>
-                <p className="text-blue-200/80 text-sm">Your app will appear in this preview as the AI generates the code</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                3
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Refine and iterate</h3>
-                <p className="text-blue-200/80 text-sm">Continue the conversation to add features and make changes</p>
-              </div>
+  if (!authed) {
+    return (
+      <Page>
+        <Header onNav={navigate} />
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8">
+          <div className="flex items-center">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-3">Build and run your online store</h1>
+              <p className="text-gray-600 mb-6">Create products, manage customers and orders, and share a beautiful storefront.
+              </p>
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="text-center">
-            <p className="text-sm text-blue-300/60">
-              No coding required • Just describe what you want
-            </p>
-          </div>
+          <Auth onAuth={() => setAuthed(true)} />
         </div>
+      </Page>
+    )
+  }
+
+  if (route === '/admin' && activeStore) {
+    return (
+      <Page>
+        <Header onNav={navigate} />
+        <StoreAdmin storeId={activeStore} />
+      </Page>
+    )
+  }
+
+  return (
+    <Page>
+      <Header onNav={navigate} />
+      <Dashboard />
+      <div className="mt-6 text-center text-sm text-gray-500">Pick a store on the left, then copy its ID from the URL bar after you click into it to manage. Or use the built-in controls to open its storefront.</div>
+    </Page>
+  )
+}
+
+function Page({ children }){
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="max-w-6xl mx-auto p-6 space-y-8">
+        {children}
       </div>
+    </div>
+  )
+}
+
+function Header({ onNav }){
+  return (
+    <div className="flex items-center justify-between py-2">
+      <a href="/" onClick={(e)=>{e.preventDefault(); onNav('/') }} className="font-semibold">ShopFlow</a>
+      <nav className="flex items-center gap-4 text-sm">
+        <a href="#" onClick={(e)=>{e.preventDefault(); onNav('/') }} className="text-gray-600 hover:text-gray-900">Dashboard</a>
+        <a href="#" onClick={(e)=>{e.preventDefault(); onNav('/admin') }} className="text-gray-600 hover:text-gray-900">Admin</a>
+        <a href="/test" className="text-gray-600 hover:text-gray-900">Connection</a>
+      </nav>
     </div>
   )
 }
